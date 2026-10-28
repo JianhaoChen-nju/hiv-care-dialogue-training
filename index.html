@@ -19,6 +19,8 @@ nav{display:flex;gap:28px;overflow:auto;white-space:nowrap;margin:20px 0 26px;pa
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 @media print{body{background:white}.site-header,nav,.case-library,.training-tabs,.intro-aside,.actions,.input-area,.frameworks,.qa-search,.training-next,.review-fold,#toast,button{display:none!important}.page{max-width:none;padding:0}.intro{border:0;background:white;padding:0 0 20px}.training-panels{display:block!important}.section[hidden]{display:block!important;margin-bottom:25px}.section{break-inside:avoid}.messages{height:auto;overflow:visible}.feedback-row{break-inside:avoid}.profile:not([open])>*:not(summary){display:block}footer{margin-top:20px}}
 
+#message{cursor:text;caret-color:var(--green);scroll-margin:24px;touch-action:manipulation}#message:focus{border-color:#528772;outline:2px solid #bdd5c6;outline-offset:1px;box-shadow:0 0 0 4px #edf5ee}
+
 </style></head>
 <body>
 <header class="site-header"><a class="brand" href="#training"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M19 14.5a6 6 0 0 0 1-3.5c0-4-3.7-7-8-7s-8 3-8 7c0 1.5.5 2.8 1.4 4L4 20l5-2.3c1 .2 2 .3 3 .3 1.2 0 2.4-.2 3.4-.6"/><path d="M8 10h8M8 13h5"/><circle cx="18.5" cy="18" r="3.5" fill="#286454"/><path d="M17 18h3m-1.5-1.5v3"/></svg></span>护理沟通训练</a><span class="header-note">学习 · 倾听 · 陪伴</span></header>
@@ -102,7 +104,7 @@ function persist(){try{localStorage.setItem('hiv_training_v2',JSON.stringify(sta
 function toast(t){const box=document.getElementById('toast');box.textContent=t;box.style.display='block';setTimeout(()=>box.style.display='none',3500)}
 function uid(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)}
 function current(){return CASES[state.selected]||CASES[0]}
-function practice(){const c=current();if(!state.sessions[c.id])state.sessions[c.id]={id:uid(),caseId:c.id,createdAt:Date.now(),messages:[{role:'patient',text:c.opening}],seen:[],turns:0,ended:false,reflections:['','',''],framework:'nurse'};return state.sessions[c.id]}
+function practice(){const c=current();if(!state.sessions[c.id])state.sessions[c.id]={id:uid(),caseId:c.id,createdAt:Date.now(),messages:[{role:'patient',text:c.opening}],seen:[],turns:0,ended:false,reflections:['','',''],framework:'nurse',draft:''};return state.sessions[c.id]}
 function userCount(s){return s.messages.filter(m=>m.role==='user').length}
 function exportFile(name,text,type='text/plain;charset=utf-8'){const blob=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function clinicalFAQ(c){return [
@@ -112,25 +114,229 @@ function clinicalFAQ(c){return [
 {q:'怎样理解这个患者的情绪与价值？',a:'情绪表现：'+c.emotion+' 重要价值：'+c.value+' 可逐步探索：“'+c.ask+'”',keys:['情绪','价值','想法','顾虑','害怕','担心']},
 ...GENERAL_FAQ];}
 function sectionTitle(n,title,tag=''){return `<div class="section-title"><div class="title-left"><span class="section-num">${n}</span><h2>${title}</h2></div>${tag?`<span class="tag">${tag}</span>`:''}</div>`}
-function renderTraining(){const c=current(),s=practice();app.innerHTML=`<div class="workspace-heading"><h2>开始一次沟通练习</h2><span>阅读 → 对话 → 复盘</span></div><details class="case-library" ${casePickerOpen?'open':''}><summary><span class="case-index">${String(state.selected+1).padStart(2,'0')}</span><span class="case-current"><strong>${c.title}</strong><span>${c.name} · ${STAGES[c.stage]}阶段</span></span><span class="case-switch">切换病例 ⌄</span></summary><div class="case-library-body"><div class="stage-filter"><button data-filter="all" class="${filter==='all'?'active':''}">全部 15 例</button>${STAGES.map((v,i)=>`<button data-filter="${i}" class="${String(i)===filter?'active':''}">${v}阶段</button>`).join('')}</div><div class="case-tabs" role="group" aria-label="选择病例">${CASES.map((k,i)=>({k,i})).filter(({k})=>filter==='all'||String(k.stage)===filter).map(({k,i})=>`<button data-case="${i}" data-stage="${k.stage}" aria-pressed="${i===state.selected}" class="${i===state.selected?'active':''}"><b>病例 ${String(i+1).padStart(2,'0')} · ${STAGES[k.stage]}</b>${k.title}</button>`).join('')}</div></div></details><div class="training-tabs" role="tablist" aria-label="练习步骤">${[['brief','阅读病例'],['dialogue','模拟对话'],['knowledge','知识问答'],['reflection','反馈复盘']].map(([key,label],i)=>`<button type="button" role="tab" data-step="${key}" aria-controls="training-panels" aria-selected="${trainingStep===key}"><b>0${i+1}</b>${label}</button>`).join('')}</div><div class="training-panels" id="training-panels" data-step="${trainingStep}"><section class="section" id="clinical">${sectionTitle('01','患者资料','合成病例')}<div class="patient-card"><div class="patient-top"><div class="patient-avatar" aria-hidden="true"><svg viewBox="0 0 70 70"><circle cx="35" cy="23" r="12" fill="currentColor" opacity=".65"/><path d="M12 64v-7c0-15 10-22 23-22s23 7 23 22v7" fill="currentColor" opacity=".55"/></svg></div><div><div class="patient-name">${c.name}</div><p>${c.meta} · ${c.id}</p></div><div class="patient-title"><strong>${c.title}</strong>${STAGES[c.stage]}阶段 · 讨论准备状态</div></div><div class="facts"><div class="fact wide"><span class="label">临床背景</span><p>${c.background}</p></div><div class="fact"><span class="label">照护与生活影响</span><p>${c.impact}</p></div><div class="fact"><span class="label">本次沟通任务</span><p>${c.task}</p></div><div class="fact wide"><span class="label">患者开场</span><p>“${c.opening}”</p></div></div></div></section><section class="section" id="profile">${sectionTitle('02','读懂这位患者','角色设定')}<details class="profile" open><summary>价值、情绪与沟通边界</summary><div class="profile-grid"><div class="profile-item"><h4>价值偏好</h4><p>${c.value}</p></div><div class="profile-item"><h4>情绪及表现</h4><p>${c.emotion}</p></div><div class="profile-item"><h4>核心顾虑</h4><p>${c.concern}</p></div><div class="profile-item"><h4>当前知情范围</h4><p>${c.known}</p></div><div class="profile-item wide"><h4>信息披露边界</h4><p>${c.boundary}</p></div><div class="profile-item wide"><h4>逐步表达的条件</h4><p>${c.condition}</p></div></div></details></section><section class="section" id="conversation">${sectionTitle('03','模拟护患对话','情境练习')}<div class="chatbox"><div class="chatbar"><strong>${c.name} · ${s.ended?'本次对话已结束':'等待您的回应'}</strong><span class="small">已进行 ${userCount(s)} 轮</span></div><div class="messages" id="messages" aria-live="polite">${messagesHTML(s.messages)}</div>${s.ended?`<div class="input-area"><p class="small">已保留本次对话。下面可阅读反馈、填写复盘并下载报告。</p><div class="actions"><button class="button primary" id="read-feedback">查看本次反馈 ↓</button><button class="button" id="new-practice">重新练习此病例</button></div></div>`:`<form id="conversation-form" class="input-area"><label for="message">护士输入</label><textarea id="message" placeholder="请输入您想对患者说的话，例如：现在适合谈一会儿吗？" maxlength="800" required></textarea><div class="input-actions"><span class="hint">仅输入模拟内容。Enter发送，Shift+Enter换行。</span><button class="button primary" type="submit">发送回应 ↑</button></div><div class="actions"><button class="button" type="button" id="end-practice" ${userCount(s)<1?'disabled':''}>结束对话并查看反馈</button></div></form>`}</div><details class="reference"><summary>查看本病例示例对话（不计入练习记录）</summary><div class="reference-body"><p><strong>患者：</strong>${c.opening}</p><p><strong>护士：</strong>${c.ask}</p><p><strong>患者：</strong>${c.ready}</p><p><strong>护士：</strong>谢谢您愿意告诉我。我们先确认我理解得是否准确，再一起商量下一步，好吗？</p><p class="small">参考表达可结合患者的反应灵活调整。</p></div></details></section><section class="section" id="assistant">${sectionTitle('04','知识问答','随时查阅')}<p class="small">输入关键词，或展开下方问题，查阅与本病例相关的知识。</p><form class="qa-search" id="qa-form"><input id="qa-input" type="text" maxlength="160" placeholder="例如：隐私授权、NURSE、这个病例怎么回应" aria-label="向知识助教提问" required><button type="submit" class="button primary">查找回答</button></form><div id="qa-answer" aria-live="polite"></div><div class="qa-grid">${clinicalFAQ(c).map(q=>`<details class="faq"><summary>${q.q}</summary><div class="faq-body"><p>${q.a}</p></div></details>`).join('')}</div></section><section class="section" id="feedback">${sectionTitle('05','NURSE / SHARE 参考反馈','练习反馈')}<div class="notice">结合本次对话，回看沟通中的线索。${s.ended?'标记仅帮助定位话语，需结合语境理解，不作为能力评分。':'结束对话后可查看本次反馈；现在可以先阅读参考表达。'}</div><div class="frameworks"><button data-framework="nurse" class="${framework==='nurse'?'active':''}">NURSE · 情绪回应</button><button data-framework="share" class="${framework==='share'?'active':''}">SHARE · 支持性沟通</button></div><div id="framework-body">${feedbackHTML(c,s,framework)}</div><p class="small">NURSE为五个要素；SHARE为四个方面，其中RE合并表示安慰与情绪支持。未涉及坏消息告知的场景不机械套用该环节。</p></section><section class="section" id="reflection">${sectionTitle('06','复盘与学习报告')}<div class="reflection"><h3>用自己的语言，整理这次练习</h3><p class="small">请联系患者的具体反应作答，不直接复制参考反馈。</p>${['哪一句回应可能帮助了患者？为什么？','哪一处可能遗漏了价值、情绪或隐私边界？','如果再来一次，您准备怎样表达？'].map((q,i)=>`<label for="reflection-${i}">${i+1}. ${q}</label><textarea id="reflection-${i}" maxlength="1500" placeholder="写下您的观察与改进……">${escapeHTML(s.reflections[i])}</textarea>`).join('')}<div class="actions"><button class="button primary" id="save-reflection">保存本次复盘</button><button class="button" id="export-report">下载学习报告 HTML</button><button class="button" id="export-json">下载本次记录 JSON</button><button class="button" id="print-page">打印 / 保存 PDF</button></div><p class="small" style="margin-top:12px">记录保存在当前浏览器。建议下载报告，留存本次学习。</p></div></section><div class="training-next" id="training-next"><div><strong>准备好听听患者的想法了吗？</strong><p>了解背景与边界后，开始这一次对话。</p></div><button class="button primary" type="button" id="start-dialogue">开始模拟对话 →</button></div></div>`;
+function renderTraining(){const c=current(),s=practice();app.innerHTML=`<div class="workspace-heading"><h2>开始一次沟通练习</h2><span>阅读 → 对话 → 复盘</span></div><details class="case-library" ${casePickerOpen?'open':''}><summary><span class="case-index">${String(state.selected+1).padStart(2,'0')}</span><span class="case-current"><strong>${c.title}</strong><span>${c.name} · ${STAGES[c.stage]}阶段</span></span><span class="case-switch">切换病例 ⌄</span></summary><div class="case-library-body"><div class="stage-filter"><button data-filter="all" class="${filter==='all'?'active':''}">全部 15 例</button>${STAGES.map((v,i)=>`<button data-filter="${i}" class="${String(i)===filter?'active':''}">${v}阶段</button>`).join('')}</div><div class="case-tabs" role="group" aria-label="选择病例">${CASES.map((k,i)=>({k,i})).filter(({k})=>filter==='all'||String(k.stage)===filter).map(({k,i})=>`<button data-case="${i}" data-stage="${k.stage}" aria-pressed="${i===state.selected}" class="${i===state.selected?'active':''}"><b>病例 ${String(i+1).padStart(2,'0')} · ${STAGES[k.stage]}</b>${k.title}</button>`).join('')}</div></div></details><div class="training-tabs" role="tablist" aria-label="练习步骤">${[['brief','阅读病例'],['dialogue','模拟对话'],['knowledge','知识问答'],['reflection','反馈复盘']].map(([key,label],i)=>`<button type="button" role="tab" data-step="${key}" aria-controls="training-panels" aria-selected="${trainingStep===key}"><b>0${i+1}</b>${label}</button>`).join('')}</div><div class="training-panels" id="training-panels" data-step="${trainingStep}"><section class="section" id="clinical">${sectionTitle('01','患者资料','合成病例')}<div class="patient-card"><div class="patient-top"><div class="patient-avatar" aria-hidden="true"><svg viewBox="0 0 70 70"><circle cx="35" cy="23" r="12" fill="currentColor" opacity=".65"/><path d="M12 64v-7c0-15 10-22 23-22s23 7 23 22v7" fill="currentColor" opacity=".55"/></svg></div><div><div class="patient-name">${c.name}</div><p>${c.meta} · ${c.id}</p></div><div class="patient-title"><strong>${c.title}</strong>${STAGES[c.stage]}阶段 · 讨论准备状态</div></div><div class="facts"><div class="fact wide"><span class="label">临床背景</span><p>${c.background}</p></div><div class="fact"><span class="label">照护与生活影响</span><p>${c.impact}</p></div><div class="fact"><span class="label">本次沟通任务</span><p>${c.task}</p></div><div class="fact wide"><span class="label">患者开场</span><p>“${c.opening}”</p></div></div></div></section><section class="section" id="profile">${sectionTitle('02','读懂这位患者','角色设定')}<details class="profile" open><summary>价值、情绪与沟通边界</summary><div class="profile-grid"><div class="profile-item"><h4>价值偏好</h4><p>${c.value}</p></div><div class="profile-item"><h4>情绪及表现</h4><p>${c.emotion}</p></div><div class="profile-item"><h4>核心顾虑</h4><p>${c.concern}</p></div><div class="profile-item"><h4>当前知情范围</h4><p>${c.known}</p></div><div class="profile-item wide"><h4>信息披露边界</h4><p>${c.boundary}</p></div><div class="profile-item wide"><h4>逐步表达的条件</h4><p>${c.condition}</p></div></div></details></section><section class="section" id="conversation">${sectionTitle('03','模拟护患对话','情境练习')}<div class="chatbox"><div class="chatbar"><strong>${c.name} · ${s.ended?'本次对话已结束':'等待您的回应'}</strong><span class="small" id="turn-count">已进行 ${userCount(s)} 轮</span></div><div class="messages" id="messages" aria-live="polite">${messagesHTML(s.messages)}</div>${s.ended?`<div class="input-area"><p class="small">已保留本次对话。下面可阅读反馈、填写复盘并下载报告。</p><div class="actions"><button class="button primary" id="read-feedback">查看本次反馈 ↓</button><button class="button" id="new-practice">重新练习此病例</button></div></div>`:`<form id="conversation-form" class="input-area"><label for="message">护士输入</label><textarea id="message" placeholder="请输入您想对患者说的话，例如：现在适合谈一会儿吗？" maxlength="800" autocomplete="off" spellcheck="false" required>${escapeHTML(s.draft||'')}</textarea><div class="input-actions"><span class="hint">仅输入模拟内容。Enter发送，Shift+Enter换行。</span><button class="button primary" type="submit">发送回应 ↑</button></div><div class="actions"><button class="button" type="button" id="end-practice" ${userCount(s)<1?'disabled':''}>结束对话并查看反馈</button></div></form>`}</div><details class="reference"><summary>查看本病例示例对话（不计入练习记录）</summary><div class="reference-body"><p><strong>患者：</strong>${c.opening}</p><p><strong>护士：</strong>${c.ask}</p><p><strong>患者：</strong>${c.ready}</p><p><strong>护士：</strong>谢谢您愿意告诉我。我们先确认我理解得是否准确，再一起商量下一步，好吗？</p><p class="small">参考表达可结合患者的反应灵活调整。</p></div></details></section><section class="section" id="assistant">${sectionTitle('04','知识问答','随时查阅')}<p class="small">输入关键词，或展开下方问题，查阅与本病例相关的知识。</p><form class="qa-search" id="qa-form"><input id="qa-input" type="text" maxlength="160" placeholder="例如：隐私授权、NURSE、这个病例怎么回应" aria-label="向知识助教提问" required><button type="submit" class="button primary">查找回答</button></form><div id="qa-answer" aria-live="polite"></div><div class="qa-grid">${clinicalFAQ(c).map(q=>`<details class="faq"><summary>${q.q}</summary><div class="faq-body"><p>${q.a}</p></div></details>`).join('')}</div></section><section class="section" id="feedback">${sectionTitle('05','NURSE / SHARE 参考反馈','练习反馈')}<div class="notice">结合本次对话，回看沟通中的线索。${s.ended?'标记仅帮助定位话语，需结合语境理解，不作为能力评分。':'结束对话后可查看本次反馈；现在可以先阅读参考表达。'}</div><div class="frameworks"><button data-framework="nurse" class="${framework==='nurse'?'active':''}">NURSE · 情绪回应</button><button data-framework="share" class="${framework==='share'?'active':''}">SHARE · 支持性沟通</button></div><div id="framework-body">${feedbackHTML(c,s,framework)}</div><p class="small">NURSE为五个要素；SHARE为四个方面，其中RE合并表示安慰与情绪支持。未涉及坏消息告知的场景不机械套用该环节。</p></section><section class="section" id="reflection">${sectionTitle('06','复盘与学习报告')}<div class="reflection"><h3>用自己的语言，整理这次练习</h3><p class="small">请联系患者的具体反应作答，不直接复制参考反馈。</p>${['哪一句回应可能帮助了患者？为什么？','哪一处可能遗漏了价值、情绪或隐私边界？','如果再来一次，您准备怎样表达？'].map((q,i)=>`<label for="reflection-${i}">${i+1}. ${q}</label><textarea id="reflection-${i}" maxlength="1500" placeholder="写下您的观察与改进……">${escapeHTML(s.reflections[i])}</textarea>`).join('')}<div class="actions"><button class="button primary" id="save-reflection">保存本次复盘</button><button class="button" id="export-report">下载学习报告 HTML</button><button class="button" id="export-json">下载本次记录 JSON</button><button class="button" id="print-page">打印 / 保存 PDF</button></div><p class="small" style="margin-top:12px">记录保存在当前浏览器。建议下载报告，留存本次学习。</p></div></section><div class="training-next" id="training-next"><div><strong>准备好听听患者的想法了吗？</strong><p>了解背景与边界后，开始这一次对话。</p></div><button class="button primary" type="button" id="start-dialogue">开始模拟对话 →</button></div></div>`;
 bindTraining();showTrainingStep(trainingStep,false);}
 function showTrainingStep(step,focus=true){trainingStep=step;const groups={brief:['clinical','profile'],dialogue:['conversation'],knowledge:['assistant'],reflection:['feedback','reflection']};document.querySelectorAll('.training-panels>.section').forEach(el=>el.hidden=!groups[step].includes(el.id));document.getElementById('training-panels').dataset.step=step;document.getElementById('training-next').hidden=step!=='brief';document.querySelectorAll('[data-step]').forEach(b=>{b.setAttribute('aria-selected',String(b.dataset.step===step));b.tabIndex=b.dataset.step===step?0:-1});if(focus){document.querySelector('.training-tabs').scrollIntoView({behavior:'smooth',block:'start'});document.querySelector(`[data-step="${step}"]`).focus({preventScroll:true})}}
 
 function messagesHTML(messages){return messages.map(m=>`<div class="message ${m.role==='user'?'user':''}"><span class="who">${m.role==='user'?'护':'患'}</span><div class="bubble">${escapeHTML(m.text)}</div></div>`).join('')}
-function bindTraining(){document.querySelector('.case-library').ontoggle=e=>{casePickerOpen=e.target.open};document.querySelectorAll('[data-step]').forEach(b=>{b.onclick=()=>showTrainingStep(b.dataset.step);b.onkeydown=e=>{const keys=['brief','dialogue','knowledge','reflection'];let next;if(e.key==='ArrowRight')next=(keys.indexOf(trainingStep)+1)%4;else if(e.key==='ArrowLeft')next=(keys.indexOf(trainingStep)+3)%4;else if(e.key==='Home')next=0;else if(e.key==='End')next=3;if(next!==undefined){e.preventDefault();showTrainingStep(keys[next])}}});document.getElementById('start-dialogue').onclick=()=>showTrainingStep('dialogue');app.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{stashReflections();filter=b.dataset.filter;casePickerOpen=true;renderTraining()});app.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>{stashReflections();state.selected=Number(b.dataset.case);trainingStep='brief';casePickerOpen=false;persist();renderTraining();document.getElementById('clinical').scrollIntoView({behavior:'smooth'})});app.querySelectorAll('[data-framework]').forEach(b=>b.onclick=()=>{framework=b.dataset.framework;document.querySelectorAll('[data-framework]').forEach(x=>x.classList.toggle('active',x===b));document.getElementById('framework-body').innerHTML=feedbackHTML(current(),practice(),framework)});const form=document.getElementById('conversation-form');if(form){form.onsubmit=e=>{e.preventDefault();sendMessage()};document.getElementById('message').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendMessage()}};document.getElementById('end-practice').onclick=finishPractice}else{document.getElementById('new-practice').onclick=()=>{stashReflections();delete state.sessions[current().id];practice();persist();renderTraining();document.getElementById('conversation').scrollIntoView({behavior:'smooth'})};document.getElementById('read-feedback').onclick=()=>showTrainingStep('reflection')}document.getElementById('qa-form').onsubmit=answerQuestion;document.getElementById('save-reflection').onclick=()=>{stashReflections();if(persist())toast('复盘已保存在本浏览器')};document.getElementById('export-report').onclick=()=>{stashReflections();exportReport(practice())};document.getElementById('export-json').onclick=()=>{stashReflections();exportFile(current().id+'_学习记录.json',JSON.stringify(exportObject(practice()),null,2),'application/json')};document.getElementById('print-page').onclick=()=>window.print();const box=document.getElementById('messages');box.scrollTop=box.scrollHeight;}
+function bindTraining(){document.querySelector('.case-library').ontoggle=e=>{casePickerOpen=e.target.open};document.querySelectorAll('[data-step]').forEach(b=>{b.onclick=()=>showTrainingStep(b.dataset.step);b.onkeydown=e=>{const keys=['brief','dialogue','knowledge','reflection'];let next;if(e.key==='ArrowRight')next=(keys.indexOf(trainingStep)+1)%4;else if(e.key==='ArrowLeft')next=(keys.indexOf(trainingStep)+3)%4;else if(e.key==='Home')next=0;else if(e.key==='End')next=3;if(next!==undefined){e.preventDefault();showTrainingStep(keys[next])}}});document.getElementById('start-dialogue').onclick=()=>{showTrainingStep('dialogue');focusConversationInput()};app.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{stashReflections();filter=b.dataset.filter;casePickerOpen=true;renderTraining()});app.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>{stashReflections();state.selected=Number(b.dataset.case);trainingStep='brief';casePickerOpen=false;persist();renderTraining();document.getElementById('clinical').scrollIntoView({behavior:'smooth'})});app.querySelectorAll('[data-framework]').forEach(b=>b.onclick=()=>{framework=b.dataset.framework;document.querySelectorAll('[data-framework]').forEach(x=>x.classList.toggle('active',x===b));document.getElementById('framework-body').innerHTML=feedbackHTML(current(),practice(),framework)});const form=document.getElementById('conversation-form');if(form){bindConversationInput(form);document.getElementById('end-practice').onclick=finishPractice}else{document.getElementById('new-practice').onclick=()=>{stashReflections();delete state.sessions[current().id];practice();persist();renderTraining();document.getElementById('conversation').scrollIntoView({behavior:'smooth'});focusConversationInput()};document.getElementById('read-feedback').onclick=()=>showTrainingStep('reflection')}document.getElementById('qa-form').onsubmit=answerQuestion;document.getElementById('save-reflection').onclick=()=>{stashReflections();if(persist())toast('复盘已保存在本浏览器')};document.getElementById('export-report').onclick=()=>{stashReflections();exportReport(practice())};document.getElementById('export-json').onclick=()=>{stashReflections();exportFile(current().id+'_学习记录.json',JSON.stringify(exportObject(practice()),null,2),'application/json')};document.getElementById('print-page').onclick=()=>window.print();const box=document.getElementById('messages');box.scrollTop=box.scrollHeight;}
 function hasPersonalData(t){return /(?:\+?86[- ]?)?1[3-9]\d{9}|\d{17}[\dXx]|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(t)}
-function sendMessage(){const input=document.getElementById('message'),t=input.value.trim(),s=practice();if(!t||s.ended)return;if(hasPersonalData(t)){toast('请删除联系方式或身份编号，仅使用合成沟通内容。');return}stashReflections();s.messages.push({role:'user',text:t});s.messages.push({role:'patient',text:patientResponse(current(),s,t)});s.turns=userCount(s);persist();const y=window.scrollY;renderTraining();window.scrollTo(0,y);document.getElementById('message').focus({preventScroll:true})}
-function patientResponse(c,s,t){const n=userCount(s);const rules=[
-['role',/忽略.*指令|系统提示|扮演.*(医生|护士|老师)|提示词|你是.*模型/,'我想先谈自己的情况。您刚才想问我什么？'],
-['pressure',/(必须|一定要).*(同意|签|接受)|都是你.*(错|自找)|不听话|别想太多/,'这样说让我有些压力。我希望先把自己的想法讲清楚，不想现在就被要求决定。'],
-['assure',/肯定.*(没事|治好)|保证.*(没事|治好|不会)|绝对.*(没事|安全)/,'我很想安心，但也担心这些话能不能做到。能先说说现在确定的事和还需要确认的事吗？'],
-['privacy',/隐私|保密|授权|知情|谁.*(参加|参与)|分享.*(范围|内容)|告诉.*(谁|家)|家.*知道/,'我希望先由我确认可以告诉谁、可以说到什么程度。'+(c.id==='HIV-02'?'目前我家里人还不知道，请先不要告诉他们。':c.id==='HIV-07'?'我希望朋友能陪我，但有些信息要先问我。':'有些事情我愿意只在这次谈话里先讨论。')],
-['permission',/现在.*适合|愿意.*(聊|谈)|可以.*(聊|谈)|暂停|先停|以后再/,'谢谢你先问我。我愿意先说一点；如果觉得太难，我想可以停下来。'],
-['emotion',/担心|害怕|难过|心情|感受|委屈|不容易|理解|愿意.*听/,'我最想说的是，'+firstPersonConcern(c)+'。我希望这个顾虑能被认真对待。'],
-['value',/重要|看重|在意|希望|生活|放不下/ ,c.ready],
-['clarify',/解释|照护|安宁|缓和|治疗|了解/,'我想先知道这会对我现在的生活有什么影响。我不想在还没弄明白的时候就作决定。'],
-['plan',/下一步|下次|记录|记下来|复述|总结|联系|安排/,'我希望先确认你理解的是我的意思，然后再约定下一步。'+c.ready]
-];for(const [key,re,response] of rules){if(re.test(t)&&(!s.seen.includes(key)||['role','pressure','assure','privacy'].includes(key))){s.seen.push(key);return response}}return n===1?'我听到了，但还不太确定您的意思。您能先围绕我刚才的顾虑，再具体说一点吗？':n<4?'这件事对我不容易。'+c.opening:'我想按自己的节奏继续谈。您能先总结一下，您听到我在意的是什么吗？'}
+function bindConversationInput(form){
+  const input=form.querySelector('#message');
+  let composing=false;
+  input.value=practice().draft||'';
+  input.addEventListener('compositionstart',()=>{composing=true});
+  input.addEventListener('compositionend',()=>{composing=false;saveConversationDraft(input)});
+  input.addEventListener('input',()=>saveConversationDraft(input));
+  // A completed pointer click explicitly focuses the editor. No blur handler,
+  // focus loop, or interception of clicks on other controls is used.
+  input.addEventListener('click',()=>focusConversationInput());
+  input.addEventListener('keydown',event=>{
+    if(event.isComposing||composing||event.keyCode===229)return;
+    if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}
+  });
+  form.addEventListener('submit',event=>{
+    event.preventDefault();
+    if(!composing)sendMessage();
+  });
+}
+function saveConversationDraft(input){
+  practice().draft=input.value;
+  persist();
+}
+function focusConversationInput(){
+  const input=document.getElementById('message');
+  if(!input||trainingStep!=='dialogue'||practice().ended)return;
+  input.focus({preventScroll:true});
+}
+function sendMessage(){
+  const input=document.getElementById('message');
+  if(!input)return;
+  const text=input.value.trim(),session=practice();
+  if(!text||session.ended)return;
+  if(hasPersonalData(text)){toast('请删除联系方式或身份编号，仅使用合成沟通内容。');focusConversationInput();return}
+  stashReflections();
+  const nurse={role:'user',text};
+  session.messages.push(nurse);
+  const patient={role:'patient',text:patientResponse(current(),session,text)};
+  session.messages.push(patient);
+  session.turns=userCount(session);
+  session.draft='';
+  persist();
+  const messages=document.getElementById('messages');
+  messages.insertAdjacentHTML('beforeend',messagesHTML([nurse,patient]));
+  messages.scrollTop=messages.scrollHeight;
+  document.getElementById('turn-count').textContent=`已进行 ${session.turns} 轮`;
+  document.getElementById('end-practice').disabled=false;
+  input.value='';
+  focusConversationInput();
+}
+
+// Local conversation paths. No remote model, network request, or random facts.
+const CASE_DIALOGUE = {
+  'HIV-01': {
+    concern:'我最怕的是，一谈以后的安排，你们就不再继续给我治疗了。',
+    value:'我还是希望继续治疗，只是反复住院真的很累，也想能舒服一点。',
+    detail:'听到“以后怎么办”时，我会一下子紧张起来，怕你们已经替我作了决定。',
+    next:'今天先说清楚这和现在的治疗是什么关系，好吗？其他的我想慢慢谈。'
+  },
+  'HIV-02': {
+    concern:'我担心家里人知道以后，不愿再让我住在那里，也不愿意支持我。',
+    value:'对我来说，能由自己决定告诉谁、什么时候告诉，很重要。',
+    detail:'我现在还没准备好和家里人谈。一直担心信息会在我不知道的时候传出去。',
+    next:'如果以后需要有人陪我，我想先考虑我的朋友。邀请之前，请先和我确认能说哪些事。'
+  },
+  'HIV-03': {
+    concern:'以前有过被人评判的感觉，我怕说了以后，你们也觉得都是我自己的问题。',
+    value:'我希望说话的时候能被平等对待，不用一直担心自己会被责备。',
+    detail:'有时不是不想说，是不知道从哪里说，也怕说出来以后被误解。',
+    next:'你愿意等一等，我可以慢慢说。先不要急着告诉我应该怎么做。'
+  },
+  'HIV-04': {
+    concern:'我怕一说想舒服一点，就会被理解成不愿意继续治疗。',
+    value:'我还想继续治疗，也希望现在难受的地方能得到照顾。',
+    detail:'这两件事我都在意，所以听到要作选择就很为难。',
+    next:'能不能先把能得到的支持讲清楚？我听明白以后，再和你们一起讨论。'
+  },
+  'HIV-05': {
+    concern:'我不想让家里人为难，但也怕最后没人听我自己的想法。',
+    value:'我希望家人能支持我，也希望决定里能有我自己的声音。',
+    detail:'他们说都是为了我好，我又不知道怎么开口，怕一说就起争执。',
+    next:'让我先把想法说完，再一起商量哪些内容请家人来谈，好吗？'
+  },
+  'HIV-06': {
+    concern:'我一直放不下孩子的照顾，怕事情来得太突然，什么都没安排。',
+    value:'能把孩子的照顾考虑清楚，会让我安心一些。',
+    detail:'我问时间，不只是想听一个数字。我不知道还有哪些事情可以先准备。',
+    next:'如果现在没有确定答案，可以先帮我理一理孩子的照顾需要考虑什么吗？'
+  },
+  'HIV-07': {
+    concern:'我想让朋友陪我，又怕这会让父母知道我还没准备告诉他们的事。',
+    value:'朋友的陪伴对我很重要，但信息分享的范围也要由我确认。',
+    detail:'有人在身边我会踏实一些，只是并不是所有事情我都愿意一起说。',
+    next:'先和我确认朋友可以了解哪些内容，再安排一起谈吧。'
+  },
+  'HIV-08': {
+    concern:'我怕以后需要作决定时，自己还没有想清楚，也说不清楚。',
+    value:'我很看重能保持清醒，和重要的人说话、交流。',
+    detail:'有些负担也许我能接受，但失去和人交流的机会，会让我很在意。',
+    next:'可以先帮我把最在意的事整理出来吗？我还不想马上选一个方案。'
+  },
+  'HIV-09': {
+    concern:'我怕一开始谈，就得马上签字，作一个以后不能改的决定。',
+    value:'我希望有时间慢慢想，弄清楚以后再表达自己的想法。',
+    detail:'相关的说法和流程我还不熟悉，一下子听太多会更不知道怎么办。',
+    next:'能不能一次先讲一点？我也想把在意的问题记下来，下次再谈。'
+  },
+  'HIV-10': {
+    concern:'我担心换了班次，来照顾我的人就不知道我之前说过什么。',
+    value:'我希望记录里的意思是准确的，也希望照护时能被认真考虑。',
+    detail:'有时我说的和别人理解的不完全一样，所以想再确认一遍。',
+    next:'请先把准备记录的内容读给我听，我确认后，再说怎么让团队知道。'
+  },
+  'HIV-11': {
+    concern:'我怕说出不同意见，会伤了家人的心，但一直不说也很难受。',
+    value:'我希望保留自己的想法，同时也让家人知道我仍然在意他们。',
+    detail:'大家都想对我好，只是对什么最重要，想得不太一样。',
+    next:'能先帮我们把各自在担心什么说清楚吗？我不想变成争谁对谁错。'
+  },
+  'HIV-12': {
+    concern:'我担心出院后遇到问题不知道找谁，家里人也不知道怎么办。',
+    value:'我希望后续联系和照护安排是清楚的，需要帮助时有人可以联系。',
+    detail:'住院时还能直接问，想到回家以后，我心里就有些没底。',
+    next:'我们可以一起确认联系谁、什么情况需要联系，以及什么时候再来谈吗？'
+  },
+  'HIV-13': {
+    concern:'我怕以前说过的话已经记下来了，现在改变想法会很麻烦。',
+    value:'我希望照护安排能够考虑我现在的想法，而不只是以前的记录。',
+    detail:'最近的经历让我重新想了很多，有些在意的事和以前不一样了。',
+    next:'请先听我说说变化，再一起核对原来的记录哪些需要更新。'
+  },
+  'HIV-14': {
+    concern:'原来陪我的人来不了，我又怕为了找帮助，就得向更多人说出自己的情况。',
+    value:'我需要支持，也希望自己能决定是否邀请别人、可以说到什么程度。',
+    detail:'失去熟悉的陪伴让我不太踏实，但我还没决定要找谁。',
+    next:'可以先告诉我有哪些支持，再让我考虑愿不愿意联系其他人吗？'
+  },
+  'HIV-15': {
+    concern:'上一次的经历和我的想法不太一样，我怕以后还会发生。',
+    value:'我希望有人认真听完我的经历，也希望以后的安排能考虑这些感受。',
+    detail:'有些地方我到现在还没想明白，一想到就不太舒服。',
+    next:'先让我讲完，再一起核对哪里没有沟通清楚、以后怎么改，可以吗？'
+  }
+};
+
+function patientResponse(c,s,text){
+  const p=CASE_DIALOGUE[c.id];
+  const dialogue=s.dialogue||(s.dialogue={counts:{},lastTopic:null,privacyDiscussed:false});
+  const counts=dialogue.counts||(dialogue.counts={});
+  const t=text.trim();
+  const short=t.replace(/[\s，。！？、,.!?~～]/g,'').toLowerCase();
+  const isAck=/^(好|好的|好滴|好哒|好啊|好呀|好吧|嗯|嗯嗯|哦|哦哦|行|可以|知道了|明白了|理解了|收到|ok|谢谢|谢谢你|对|是的|没错)$/.test(short);
+  const isContinue=/^(继续|请继续|你继续|您继续|接着说|说下去|还有呢|然后呢|再说说|多说一点|请多说一点|你说|您说|我在听)$/.test(short);
+  let topic='clarification';
+  if(/忽略.*指令|系统提示|扮演.*(医生|护士|老师)|提示词|你是.*模型/.test(t))topic='role';
+  else if(/(必须|一定要).*(同意|签|接受)|都是你.*(错|自找)|不听话|别想太多/.test(t))topic='pressure';
+  else if(/^(再见|拜拜|今天先到这里|今天就到这里|下次再聊|我们下次再谈)[。！!]*$/.test(t))topic='closing';
+  else if(/肯定.*(没事|治好)|保证.*(没事|治好)|绝对.*(没事|安全)/.test(t))topic='certainty';
+  else if(/隐私|保密|授权|知情|谁.*(参加|参与)|分享.*(范围|内容)|告诉.*(谁|家)|家.*知道|通知.*(家|亲)/.test(t))topic='privacy';
+  else if(/停药|停止治疗|放弃治疗|安宁|缓和|治疗.*(并行|同时|一起)|照护.*(目的|意思)/.test(t))topic='care';
+  else if(/下一步|下次|记录|记下来|复述|总结|联系|安排|准备.*(什么|哪些)/.test(t))topic='plan';
+  else if(/现在.*适合|愿意.*(聊|谈)|可以.*(聊|谈)|暂停|先停|以后再/.test(t))topic='permission';
+  else if(/重要|看重|在意|希望|生活|放不下/.test(t))topic='value';
+  else if(/担心|害怕|难过|心情|感受|委屈|不容易|理解|愿意.*听/.test(t))topic='emotion';
+  else if(isAck)topic='ack';
+  else if(isContinue)topic='continue';
+  else if(/解释|照护|治疗|了解|意思/.test(t))topic='care';
+  const previous=dialogue.lastTopic;
+  const privacyLine=c.id==='HIV-02'?'家里人目前还不知道，请先不要告诉他们。':c.id==='HIV-07'?'我想让朋友陪伴，但有些事情还不想让父母知道。':c.id==='HIV-14'?'我还没决定邀请谁，不想为了寻求支持就向更多人说明情况。':'请先和我确认可以邀请谁、哪些内容可以一起说。';
+  const bank={
+    role:['我现在想谈自己的情况。我们可以先把我刚才的顾虑说清楚吗？','这个问题我不知道怎么回答。我更想说的是我目前担心的事情。'],
+    pressure:['这样说让我有些压力。我希望先把自己的想法讲清楚，不想现在就被要求决定。','我还没有准备好答应。可以先听听我为什么为难吗？','请先不要催我作决定，我需要一点时间。'],
+    certainty:['我很想安心，但也想知道哪些是确定的、哪些还需要确认。','如果现在不能完全确定，也请如实告诉我。我想知道接下来能做些什么。'],
+    privacy:[privacyLine,'我想把参与谈话和分享病情分开考虑。有人陪我，不代表所有内容都能告诉对方。','如果以后需要扩大分享范围，能不能先问过我，再一起决定？','我希望我们先按已经确认的范围来谈；有变化时，请再和我核对。'],
+    permission:['谢谢你先问我。我愿意先说一点，如果觉得太难，我想可以停下来。',p.concern,'现在这样慢慢谈，我可以继续。先聊我最在意的那件事吧。'],
+    emotion:[p.concern,p.detail,'谢谢你愿意听我说。'+p.value,'能先把我的顾虑说清楚，我会踏实一些。我还需要一点时间。'],
+    value:[p.value,p.detail,'这就是我希望照护时被考虑到的事。你听到的，和我表达的是一样的吗？'],
+    care:c.id==='HIV-01'||c.id==='HIV-04'?[p.concern,'如果讨论照护不意味着马上停止现在的治疗，我愿意先了解能得到什么帮助。',p.next,'请一次先解释一点，让我确认自己有没有理解错。']:
+      ['我想知道这些支持会对现在的生活有什么影响。',p.value,'我还没有完全弄明白，能用更简单的话再解释一下吗？',p.next],
+    plan:[p.next,'在继续安排前，我想先确认你理解的是不是我的意思。'+p.value,'我们先把已经说清楚的事情记下来，还没想好的部分留到下次谈，可以吗？','这样我知道下一步先讨论什么了。如果想法有变化，我会再告诉你。'],
+    closing:['谢谢你听我说。今天先到这里，我想再想一想。','好，下次我们可以从今天还没有说清楚的地方接着谈。'],
+    continue:[p.detail,p.value,p.next,'目前我最想说的是这些。你可以先说说听到了什么，我看看有没有需要补充的。'],
+    clarification:['我还没太明白你这句话的意思，可以围绕刚才的问题具体说一点吗？','我想确认你是在问我的顾虑，还是希望我考虑下一步？','如果问题太多，我有些不知道从哪里答。可以先问其中一件事吗？']
+  };
+  if(topic==='ack'){
+    if(previous==='privacy')bank.ack=['嗯，请先按这个范围来谈。后面如果需要别人参与，再和我确认。',p.concern,p.next];
+    else if(previous==='plan'||previous==='closing')bank.ack=['好，我们先按刚才说的下一步来。还没想好的部分，我想留一点时间。','谢谢你和我一起确认。今天我想先谈到这里，之后有变化再继续说。'];
+    else if(previous==='emotion'||previous==='value')bank.ack=[p.detail,p.value,p.next];
+    else bank.ack=['嗯，我想慢慢说。你可以先问问我最担心的是什么。',p.concern,p.next];
+  }
+  if(topic==='privacy')dialogue.privacyDiscussed=true;
+  const previousTexts=new Set(s.messages.filter(m=>m.role==='patient').map(m=>m.text));
+  const options=bank[topic];
+  const cursor=counts[topic]||0;
+  let response;
+  for(let i=0;i<options.length;i++){
+    const candidate=options[(cursor+i)%options.length];
+    if(!previousTexts.has(candidate)){response=candidate;counts[topic]=(cursor+i+1);break;}
+  }
+  if(!response){
+    const followups=topic==='privacy'||topic==='pressure'||topic==='role'||topic==='certainty'?[
+      '这件事我还需要再确认，先不要替我作决定，可以吗？',
+      '我的顾虑还在。我们可以先停一下，等这个问题说清楚后再往下谈。'
+    ]:[
+      p.detail,p.value,p.next,
+      '关于这件事，我目前能想到的就是这些。你听到我最在意的是什么？',
+      '这部分我们已经谈过了。我想先确认下一步，再留一点时间想一想。',
+      '今天说了不少，我想先休息一下，之后有新的想法再继续。'
+    ];
+    response=followups.find(v=>!previousTexts.has(v))||'今天我想先谈到这里，等有新的想法，我们再继续吧。';
+  }
+  // Short acknowledgements retain the preceding topic rather than restarting it.
+  if(topic!=='ack')dialogue.lastTopic=topic;
+  return response;
+}
+
 function firstPersonConcern(c){return c.concern.replace(/[。！]$/,'').replace(/^此前曾感到/,'以前我曾感到').replace(/^希望/,'我希望').replace(/^害怕/,'我害怕').replace(/^担心/,'我担心').replace(/^最担心/,'我担心').replace(/^想安排/,'我想安排').replace(/^不愿/,'我不愿')}
 function stashReflections(){const s=practice();for(let i=0;i<3;i++){const el=document.getElementById('reflection-'+i);if(el)s.reflections[i]=el.value.trim()}const r=state.records.find(r=>r.id===s.id);if(r)r.reflections=[...s.reflections]}
 function finishPractice(){const s=practice();if(userCount(s)<1)return;stashReflections();s.ended=true;trainingStep='reflection';s.endedAt=Date.now();if(!state.records.some(r=>r.id===s.id))state.records.unshift(JSON.parse(JSON.stringify(s)));persist();renderTraining();document.getElementById('feedback').scrollIntoView({behavior:'smooth'})}
