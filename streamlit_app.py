@@ -8,6 +8,15 @@ st.set_page_config(
     layout="wide",
 )
 
+st.set_option("client.toolbarMode", "minimal")
+st.markdown(
+    """<style>
+    header[data-testid="stHeader"] { display: none !important; }
+    .stMainBlockContainer { padding-top: 0; padding-bottom: 0; }
+    </style>""",
+    unsafe_allow_html=True,
+)
+
 st.iframe(
     Path(__file__).with_name("index.html"),
     height="content",
